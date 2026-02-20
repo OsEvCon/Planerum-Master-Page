@@ -1,0 +1,16 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --primary: #0e8f73;
+  --secondary: #487a7a;
+  --background-light: #F5F5F5;
+  --surface-light: #FFFFFF;
+  --error: #B00020;
+  --warning: #FFC107;
+  --success: #4CAF50;
+  --info: #2196F3;
+  --scheduled: #4CAF50;
+  --cancelled: #B00020;
+}

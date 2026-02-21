@@ -1,4 +1,5 @@
 import { MasterBio } from "./MasterBio";
+import { MasterProcedures } from "./MasterProcedures";
 
 const API_BASE = "http://localhost:8080";
 
@@ -71,15 +72,7 @@ export default async function MasterPage({
           )}
         </div>
 
-        {/* TODO: подключить реальный список услуг с API */}
-        <section className="mt-6 rounded-2xl border border-[var(--secondary)]/30 bg-[var(--surface-light)] p-6 md:mt-8 md:p-8">
-          <h2 className="text-xl font-semibold text-[var(--secondary)]">
-            Услуги мастера (скоро)
-          </h2>
-          <p className="mt-2 text-[var(--secondary)]/80">
-            Список услуг будет доступен в следующем обновлении.
-          </p>
-        </section>
+        <MasterProcedures masterId={id} />
       </div>
     </main>
   );

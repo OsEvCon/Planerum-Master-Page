@@ -31,6 +31,9 @@ yarn-error.log*
 # vercel
 .vercel
 
+# Cursor agent skills (local installs)
+.agents/
+
 # typescript
 *.tsbuildinfo
 next-env.d.ts

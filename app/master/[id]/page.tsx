@@ -1,5 +1,6 @@
 import { MasterBio } from "./MasterBio";
 import { MasterProcedures } from "./MasterProcedures";
+import { MasterBooking } from "./MasterBooking";
 
 const API_BASE = "http://localhost:8080";
 
@@ -73,6 +74,8 @@ export default async function MasterPage({
         </div>
 
         <MasterProcedures masterId={id} />
+
+        <MasterBooking masterId={id} />
       </div>
     </main>
   );

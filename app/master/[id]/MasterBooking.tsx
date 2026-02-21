@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback, useMemo } from "react";
+import { useState, useCallback, useMemo, useRef, useEffect } from "react";
 import {
   format,
   parseISO,
@@ -50,6 +50,20 @@ export function MasterBooking({ masterId }: MasterBookingProps) {
   const [currentMonth, setCurrentMonth] = useState(() => startOfMonth(new Date()));
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [selectedSlot, setSelectedSlot] = useState<VisitSlot | null>(null);
+  const timeSlotsRef = useRef<HTMLDivElement>(null);
+  const bookButtonRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (selectedDate && timeSlotsRef.current) {
+      timeSlotsRef.current.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+  }, [selectedDate]);
+
+  useEffect(() => {
+    if (selectedSlot && bookButtonRef.current) {
+      bookButtonRef.current.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+  }, [selectedSlot]);
 
   const fetchSlots = useCallback(async () => {
     setLoading(true);
@@ -211,7 +225,7 @@ export function MasterBooking({ masterId }: MasterBookingProps) {
 
             {/* Time slots for selected day */}
             {selectedDate && (
-              <div className="mt-6 border-t border-[var(--secondary)]/20 pt-6">
+              <div ref={timeSlotsRef} className="mt-6 border-t border-[var(--secondary)]/20 pt-6">
                 <h3 className="text-sm font-medium text-[var(--secondary)]">
                   {format(selectedDate, "d MMMM", { locale: ru })} — выберите время
                 </h3>
@@ -241,7 +255,7 @@ export function MasterBooking({ masterId }: MasterBookingProps) {
                 )}
 
                 {selectedSlot && (
-                  <div className="mt-6 rounded-xl bg-[var(--primary)]/10 p-4">
+                  <div ref={bookButtonRef} className="mt-6 rounded-xl bg-[var(--primary)]/10 p-4">
                     <p className="text-sm text-[var(--secondary)]">
                       Выбрано: {format(selectedDate, "d MMMM", { locale: ru })}, {formatTime(selectedSlot.visitDateTime)}
                     </p>

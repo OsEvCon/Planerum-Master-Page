@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
+import { ClientVisitsList } from "./ClientVisitsList";
 import { MasterProcedures } from "./MasterProcedures";
 import { MasterBooking } from "./MasterBooking";
 
@@ -127,9 +128,18 @@ export function MasterPageClient({ masterId, masterName, bioSection }: MasterPag
   return (
     <>
       {!clientLoading && client && (
-        <p className="text-lg font-medium text-[var(--primary)]">
-          Здравствуйте, {client.name}
-        </p>
+        <>
+          <p className="text-lg font-medium text-[var(--primary)]">
+            Здравствуйте, {client.name}
+          </p>
+          {fingerprint && (
+            <ClientVisitsList
+              client={client}
+              masterId={masterId}
+              fingerprint={fingerprint}
+            />
+          )}
+        </>
       )}
       <h1 className="text-2xl font-bold tracking-tight text-[var(--primary)] sm:text-3xl md:text-4xl mt-2">
         Запись к {masterName}

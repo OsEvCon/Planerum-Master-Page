@@ -1,6 +1,5 @@
 import { MasterBio } from "./MasterBio";
-import { MasterProcedures } from "./MasterProcedures";
-import { MasterBooking } from "./MasterBooking";
+import { MasterPageClient } from "./MasterPageClient";
 
 const API_BASE = "http://localhost:8080";
 
@@ -59,23 +58,19 @@ export default async function MasterPage({
   return (
     <main className="min-h-screen bg-[var(--background-light)] px-4 py-6 md:px-8 md:py-10">
       <div className="mx-auto max-w-[800px]">
-        {/* Заголовок страницы */}
-        <h1 className="text-2xl font-bold tracking-tight text-[var(--primary)] sm:text-3xl md:text-4xl">
-          Запись к {master.name}
-        </h1>
-
-        {/* Карточка мастера */}
-        <div className="mt-6 rounded-2xl bg-[var(--surface-light)] p-6 shadow-sm md:p-8">
-          {hasBio && (
-            <div className="border-b border-[var(--secondary)]/20 pb-2">
-              <MasterBio bio={master.bio!} />
-            </div>
-          )}
-        </div>
-
-        <MasterProcedures masterId={id} />
-
-        <MasterBooking masterId={id} />
+        <MasterPageClient
+          masterId={id}
+          masterName={master.name}
+          bioSection={
+            hasBio ? (
+              <div className="mt-6 rounded-2xl bg-[var(--surface-light)] p-6 shadow-sm md:p-8">
+                <div className="border-b border-[var(--secondary)]/20 pb-2">
+                  <MasterBio bio={master.bio!} />
+                </div>
+              </div>
+            ) : null
+          }
+        />
       </div>
     </main>
   );

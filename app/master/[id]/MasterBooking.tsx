@@ -49,18 +49,22 @@ type MasterBookingProps = {
   onVisitSuccess?: () => void;
 };
 
-function normalizePhone(input: string): string {
-  const digits = input.replace(/\D/g, "");
-  if (digits.length >= 11 && digits.startsWith("7")) return digits.slice(1);
-  if (digits.length >= 11 && digits.startsWith("8")) return digits.slice(1);
-  return digits;
+/** Из сырой строки поля извлекаем только цифры после +7 (без кода страны), макс 10 */
+function parsePhoneDigitsFromInput(raw: string): string {
+  let d = raw.replace(/\D/g, "").slice(0, 11);
+  if (raw.trim().startsWith("+7") && d.startsWith("7")) d = d.slice(1);
+  return d.slice(0, 10);
 }
 
-function formatPhoneDisplay(value: string): string {
-  const d = value.replace(/\D/g, "").slice(0, 10);
-  if (d.length <= 3) return d ? `+7 (${d}` : "+7 ";
-  if (d.length <= 6) return `+7 (${d.slice(0, 3)}) ${d.slice(3)}`;
-  return `+7 (${d.slice(0, 3)}) ${d.slice(3, 6)}-${d.slice(6, 8)}-${d.slice(8)}`;
+/** Форматирование цифр для отображения: +7 (XXX) XXX-XX-XX. Без завершающего тире — чтобы Backspace всегда удалял цифру */
+function formatPhoneFromDigits(digits: string): string {
+  if (digits.length === 0) return "+7 ";
+  if (digits.length <= 3) return `+7 (${digits}`;
+  if (digits.length <= 6) return `+7 (${digits.slice(0, 3)}) ${digits.slice(3)}`;
+  if (digits.length === 7) return `+7 (${digits.slice(0, 3)}) ${digits.slice(3, 6)}-${digits[6]}`;
+  if (digits.length === 8) return `+7 (${digits.slice(0, 3)}) ${digits.slice(3, 6)}-${digits.slice(6, 8)}`;
+  if (digits.length === 9) return `+7 (${digits.slice(0, 3)}) ${digits.slice(3, 6)}-${digits.slice(6, 8)}-${digits[8]}`;
+  return `+7 (${digits.slice(0, 3)}) ${digits.slice(3, 6)}-${digits.slice(6, 8)}-${digits.slice(8)}`;
 }
 
 function formatPrice(value: number | string): string {
@@ -99,7 +103,7 @@ export function MasterBooking({
   const [selectedProcedureIds, setSelectedProcedureIds] = useState<Set<number>>(new Set());
   const [modalOpen, setModalOpen] = useState(false);
   const [formName, setFormName] = useState("");
-  const [formPhone, setFormPhone] = useState("+7 ");
+  const [formPhoneDigits, setFormPhoneDigits] = useState("");
   const [formErrors, setFormErrors] = useState<{ name?: string; phone?: string }>({});
   const [submitting, setSubmitting] = useState(false);
   const timeSlotsRef = useRef<HTMLDivElement>(null);
@@ -248,7 +252,7 @@ export function MasterBooking({
           setSelectedProcedureIds(new Set());
           setModalOpen(false);
           setFormName("");
-          setFormPhone("+7 ");
+          setFormPhoneDigits("");
           setFormErrors({});
           refetchSlots();
         } else {
@@ -284,15 +288,14 @@ export function MasterBooking({
     (e: React.FormEvent) => {
       e.preventDefault();
       const name = formName.trim();
-      const phoneDigits = normalizePhone(formPhone);
       const err: { name?: string; phone?: string } = {};
       if (!name) err.name = "Введите имя";
-      if (phoneDigits.length !== 10) {
-        err.phone = "Введите корректный телефон (10 цифр)";
+      if (formPhoneDigits.length !== 10) {
+        err.phone = "Введите корректный телефон (10 цифр после +7)";
       }
       setFormErrors(err);
       if (Object.keys(err).length > 0) return;
-      const clientPhone = phoneDigits.length === 10 ? `+7${phoneDigits}` : `+${phoneDigits}`;
+      const clientPhone = `+7${formPhoneDigits}`;
       if (!selectedSlot) return;
       submitVisit({
         visitId: selectedSlot.id,
@@ -302,15 +305,8 @@ export function MasterBooking({
         procedureIds: selectedProcedureIds.size > 0 ? Array.from(selectedProcedureIds) : undefined,
       });
     },
-    [formName, formPhone, selectedSlot, fingerprint, selectedProcedureIds, submitVisit]
+    [formName, formPhoneDigits, selectedSlot, fingerprint, selectedProcedureIds, submitVisit]
   );
-
-  const validatePhone = (raw: string) => {
-    const digits = raw.replace(/\D/g, "").slice(0, 11);
-    if (digits.startsWith("7") && digits.length > 1) return formatPhoneDisplay(digits.slice(1));
-    if (digits.startsWith("8") && digits.length > 1) return formatPhoneDisplay(digits.slice(1));
-    return formatPhoneDisplay(digits);
-  };
 
   return (
     <section className="mt-6 rounded-2xl border border-[var(--secondary)]/30 bg-[var(--surface-light)] overflow-hidden md:mt-8">
@@ -546,8 +542,8 @@ export function MasterBooking({
                 <input
                   id="client-phone"
                   type="tel"
-                  value={formPhone}
-                  onChange={(e) => setFormPhone(validatePhone(e.target.value))}
+                  value={formatPhoneFromDigits(formPhoneDigits)}
+                  onChange={(e) => setFormPhoneDigits(parsePhoneDigitsFromInput(e.target.value))}
                   placeholder="+7 (999) 123-45-67"
                   className="mt-1 w-full rounded-xl border border-[var(--secondary)]/30 bg-[var(--surface-light)] px-4 py-2.5 text-[var(--secondary)] placeholder:text-[var(--secondary)]/50 focus:border-[var(--primary)] focus:outline-none focus:ring-1 focus:ring-[var(--primary)]"
                   autoComplete="tel"

@@ -65,6 +65,7 @@ export function MasterPageClient({ masterId, masterName, bioSection }: MasterPag
   const [fingerprint, setFingerprint] = useState("");
   const [client, setClient] = useState<Client | null>(null);
   const [clientLoading, setClientLoading] = useState(true);
+  const [unlinking, setUnlinking] = useState(false);
 
   useEffect(() => {
     setFingerprint(getOrCreateFingerprint());
@@ -125,13 +126,52 @@ export function MasterPageClient({ masterId, masterName, bioSection }: MasterPag
       .catch(() => {});
   }, [fingerprint, masterId]);
 
+  const handleUnlinkFingerprint = useCallback(async () => {
+    if (!client || !fingerprint) {
+      if (typeof window !== "undefined") {
+        window.location.reload();
+      }
+      return;
+    }
+
+    setUnlinking(true);
+    try {
+      await fetch(`/api/clients/${client.id}/fingerprints`, {
+        method: "DELETE",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          clientId: client.id,
+          fingerprint,
+        }),
+      });
+    } catch {
+      // игнорируем ошибку, страница всё равно перезагрузится
+    } finally {
+      if (typeof window !== "undefined") {
+        window.location.reload();
+      }
+    }
+  }, [client, fingerprint]);
+
   return (
     <>
       {!clientLoading && client && (
-        <>
-          <p className="text-lg font-medium text-[var(--primary)]">
-            Здравствуйте, {client.name}
-          </p>
+        <div className="mb-2">
+          <div className="flex flex-wrap items-center gap-3">
+            <p className="text-lg font-medium text-[var(--primary)]">
+              Здравствуйте, {client.name}
+            </p>
+            <button
+              type="button"
+              onClick={handleUnlinkFingerprint}
+              disabled={unlinking}
+              className="rounded-full border border-[var(--secondary)]/30 px-3 py-1 text-xs font-medium text-[var(--secondary)] hover:bg-[var(--secondary)]/10 disabled:opacity-60"
+            >
+              {unlinking ? "Выход…" : "Выйти"}
+            </button>
+          </div>
           {fingerprint && (
             <ClientVisitsList
               client={client}
@@ -139,7 +179,7 @@ export function MasterPageClient({ masterId, masterName, bioSection }: MasterPag
               fingerprint={fingerprint}
             />
           )}
-        </>
+        </div>
       )}
       <h1 className="text-2xl font-bold tracking-tight text-[var(--primary)] sm:text-3xl md:text-4xl mt-2">
         Запись к {masterName}

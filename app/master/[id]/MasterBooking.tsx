@@ -102,9 +102,11 @@ export function MasterBooking({
   const [procedures, setProcedures] = useState<Procedure[] | null>(null);
   const [selectedProcedureIds, setSelectedProcedureIds] = useState<Set<number>>(new Set());
   const [modalOpen, setModalOpen] = useState(false);
-  const [formName, setFormName] = useState("");
+  const [formFirstName, setFormFirstName] = useState("");
+  const [formLastName, setFormLastName] = useState("");
   const [formPhoneDigits, setFormPhoneDigits] = useState("");
-  const [formErrors, setFormErrors] = useState<{ name?: string; phone?: string }>({});
+  const [formEmail, setFormEmail] = useState("");
+  const [formErrors, setFormErrors] = useState<{ firstName?: string; lastName?: string; phone?: string; email?: string }>({});
   const [submitting, setSubmitting] = useState(false);
   const timeSlotsRef = useRef<HTMLDivElement>(null);
   const proceduresRef = useRef<HTMLDivElement>(null);
@@ -227,9 +229,10 @@ export function MasterBooking({
   const submitVisit = useCallback(
     async (body: {
       visitId: number;
-      fingerprint: string;
-      clientName: string;
+      clientPublicName: string;
       clientPhone: string;
+      fingerprint?: string;
+      email?: string;
       notes?: string;
       procedureIds?: number[];
     }) => {
@@ -251,10 +254,14 @@ export function MasterBooking({
           setSelectedSlot(null);
           setSelectedProcedureIds(new Set());
           setModalOpen(false);
-          setFormName("");
+          setFormFirstName("");
+          setFormLastName("");
           setFormPhoneDigits("");
+          setFormEmail("");
           setFormErrors({});
-          refetchSlots();
+          if (typeof window !== "undefined") {
+            window.location.reload();
+          }
         } else {
           toast.error(typeof data?.message === "string" ? data.message : "Не удалось записаться. Попробуйте позже.");
         }
@@ -264,19 +271,19 @@ export function MasterBooking({
         setSubmitting(false);
       }
     },
-    [selectedDate, selectedSlot, onVisitSuccess, refetchSlots]
+    [selectedDate, selectedSlot, onVisitSuccess]
   );
 
   const handleBookClick = useCallback(() => {
-    if (!selectedSlot || !fingerprint) return;
+    if (!selectedSlot) return;
     const procedureIds = selectedProcedureIds.size > 0 ? Array.from(selectedProcedureIds) : undefined;
     if (client) {
       const clientPhone = client.phoneNumber.startsWith("+") ? client.phoneNumber : `+${client.phoneNumber}`;
       submitVisit({
         visitId: selectedSlot.id,
-        fingerprint,
-        clientName: client.name,
+        clientPublicName: client.name,
         clientPhone,
+        fingerprint: fingerprint || undefined,
         procedureIds,
       });
     } else {
@@ -287,25 +294,33 @@ export function MasterBooking({
   const handleModalSubmit = useCallback(
     (e: React.FormEvent) => {
       e.preventDefault();
-      const name = formName.trim();
-      const err: { name?: string; phone?: string } = {};
-      if (!name) err.name = "Введите имя";
+      const firstName = formFirstName.trim();
+      const lastName = formLastName.trim();
+      const email = formEmail.trim();
+      const err: { firstName?: string; lastName?: string; phone?: string; email?: string } = {};
+      if (!firstName) err.firstName = "Введите имя";
+      if (!lastName) err.lastName = "Введите фамилию";
       if (formPhoneDigits.length !== 10) {
         err.phone = "Введите корректный телефон (10 цифр после +7)";
       }
+      if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+        err.email = "Неверный формат электронной почты";
+      }
       setFormErrors(err);
       if (Object.keys(err).length > 0) return;
+      const clientPublicName = `${firstName} ${lastName}`;
       const clientPhone = `+7${formPhoneDigits}`;
       if (!selectedSlot) return;
       submitVisit({
         visitId: selectedSlot.id,
-        fingerprint,
-        clientName: name,
+        clientPublicName,
         clientPhone,
+        fingerprint: fingerprint || undefined,
+        email: email || undefined,
         procedureIds: selectedProcedureIds.size > 0 ? Array.from(selectedProcedureIds) : undefined,
       });
     },
-    [formName, formPhoneDigits, selectedSlot, fingerprint, selectedProcedureIds, submitVisit]
+    [formFirstName, formLastName, formEmail, formPhoneDigits, selectedSlot, fingerprint, selectedProcedureIds, submitVisit]
   );
 
   return (
@@ -519,20 +534,37 @@ export function MasterBooking({
             </h3>
             <form onSubmit={handleModalSubmit} className="mt-4 space-y-4">
               <div>
-                <label htmlFor="client-name" className="block text-sm font-medium text-[var(--secondary)]">
+                <label htmlFor="client-first-name" className="block text-sm font-medium text-[var(--secondary)]">
                   Имя <span className="text-[var(--error)]">*</span>
                 </label>
                 <input
-                  id="client-name"
+                  id="client-first-name"
                   type="text"
-                  value={formName}
-                  onChange={(e) => setFormName(e.target.value)}
-                  placeholder="Иван"
+                  value={formFirstName}
+                  onChange={(e) => setFormFirstName(e.target.value)}
+                  placeholder="Анна"
                   className="mt-1 w-full rounded-xl border border-[var(--secondary)]/30 bg-[var(--surface-light)] px-4 py-2.5 text-[var(--secondary)] placeholder:text-[var(--secondary)]/50 focus:border-[var(--primary)] focus:outline-none focus:ring-1 focus:ring-[var(--primary)]"
-                  autoComplete="name"
+                  autoComplete="given-name"
                 />
-                {formErrors.name && (
-                  <p className="mt-1 text-sm text-[var(--error)]">{formErrors.name}</p>
+                {formErrors.firstName && (
+                  <p className="mt-1 text-sm text-[var(--error)]">{formErrors.firstName}</p>
+                )}
+              </div>
+              <div>
+                <label htmlFor="client-last-name" className="block text-sm font-medium text-[var(--secondary)]">
+                  Фамилия <span className="text-[var(--error)]">*</span>
+                </label>
+                <input
+                  id="client-last-name"
+                  type="text"
+                  value={formLastName}
+                  onChange={(e) => setFormLastName(e.target.value)}
+                  placeholder="Иванова"
+                  className="mt-1 w-full rounded-xl border border-[var(--secondary)]/30 bg-[var(--surface-light)] px-4 py-2.5 text-[var(--secondary)] placeholder:text-[var(--secondary)]/50 focus:border-[var(--primary)] focus:outline-none focus:ring-1 focus:ring-[var(--primary)]"
+                  autoComplete="family-name"
+                />
+                {formErrors.lastName && (
+                  <p className="mt-1 text-sm text-[var(--error)]">{formErrors.lastName}</p>
                 )}
               </div>
               <div>
@@ -550,6 +582,26 @@ export function MasterBooking({
                 />
                 {formErrors.phone && (
                   <p className="mt-1 text-sm text-[var(--error)]">{formErrors.phone}</p>
+                )}
+              </div>
+              <div>
+                <label htmlFor="client-email" className="block text-sm font-medium text-[var(--secondary)]">
+                  Email
+                </label>
+                <input
+                  id="client-email"
+                  type="email"
+                  value={formEmail}
+                  onChange={(e) => setFormEmail(e.target.value)}
+                  placeholder="example@mail.ru"
+                  className="mt-1 w-full rounded-xl border border-[var(--secondary)]/30 bg-[var(--surface-light)] px-4 py-2.5 text-[var(--secondary)] placeholder:text-[var(--secondary)]/50 focus:border-[var(--primary)] focus:outline-none focus:ring-1 focus:ring-[var(--primary)]"
+                  autoComplete="email"
+                />
+                <p className="mt-1 text-xs text-[var(--secondary)]/80">
+                  Укажите email, если хотите получать уведомления о новых и отменённых записях на почту.
+                </p>
+                {formErrors.email && (
+                  <p className="mt-1 text-sm text-[var(--error)]">{formErrors.email}</p>
                 )}
               </div>
               <div className="flex gap-3 pt-2">

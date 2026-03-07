@@ -38,7 +38,7 @@ export type Client = {
   phoneNumber: string;
 };
 
-/** Нормализует ответ бэкенда (camelCase/snake_case, возможно обёрнут в data) в Client */
+/** Нормализует ответ бэкенда (camelCase/snake_case, возможно обёрнут в data) в Client. name = clientPublicName или name. */
 function normalizeClientResponse(data: unknown): Client | null {
   if (!data || typeof data !== "object") return null;
   const raw = data as Record<string, unknown>;
@@ -46,13 +46,22 @@ function normalizeClientResponse(data: unknown): Client | null {
     ? (raw.data as Record<string, unknown>)
     : raw;
   const id = typeof o.id === "number" ? o.id : Number(o.id);
-  const name = typeof o.name === "string" ? o.name : String(o.name ?? "");
+  const name =
+    typeof (o.publicName ?? o.public_name ?? o.clientPublicName ?? o.client_public_name ?? o.name) === "string"
+      ? String(o.publicName ?? o.public_name ?? o.clientPublicName ?? o.client_public_name ?? o.name)
+      : "";
   const phoneNumber =
     typeof (o.phoneNumber ?? o.phone_number) === "string"
       ? String(o.phoneNumber ?? o.phone_number)
       : "";
   if (Number.isNaN(id) || !name) return null;
   return { id, name, phoneNumber };
+}
+
+/** Для приветствия берём только имя (первая часть clientPublicName до пробела). */
+function getFirstNameForGreeting(fullName: string): string {
+  const first = fullName.trim().split(/\s+/)[0];
+  return first || fullName;
 }
 
 type MasterPageClientProps = {
@@ -161,7 +170,7 @@ export function MasterPageClient({ masterId, masterName, bioSection }: MasterPag
         <div className="mb-2">
           <div className="flex flex-wrap items-center gap-3">
             <p className="text-lg font-medium text-[var(--primary)]">
-              Здравствуйте, {client.name}
+              Здравствуйте, {getFirstNameForGreeting(client.name)}
             </p>
             <button
               type="button"

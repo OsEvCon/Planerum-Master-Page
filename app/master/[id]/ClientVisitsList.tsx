@@ -33,6 +33,7 @@ export function ClientVisitsList({
   const [visits, setVisits] = useState<Visit[]>([]);
   const [loading, setLoading] = useState(true);
   const [cancellingId, setCancellingId] = useState<number | null>(null);
+  const [confirmCancelVisit, setConfirmCancelVisit] = useState<Visit | null>(null);
 
   const fetchVisits = useCallback(async () => {
     try {
@@ -60,9 +61,14 @@ export function ClientVisitsList({
     fetchVisits();
   }, [client.id, fingerprint, fetchVisits]);
 
-  const handleCancel = useCallback(
+  const handleCancelClick = useCallback((visit: Visit) => {
+    setConfirmCancelVisit(visit);
+  }, []);
+
+  const handleCancelConfirm = useCallback(
     async (visit: Visit) => {
       if (!fingerprint) return;
+      setConfirmCancelVisit(null);
       setCancellingId(visit.id);
       try {
         const res = await fetch("/api/visits/cancel", {
@@ -95,7 +101,7 @@ export function ClientVisitsList({
   return (
     <div className="mt-4">
       <h2 className="text-base font-semibold text-[var(--secondary)]">
-        Мои записи
+        Ваши записи
       </h2>
       <ul className="mt-2 space-y-3">
         {visits.map((visit) => (
@@ -115,7 +121,7 @@ export function ClientVisitsList({
             )}
             <button
               type="button"
-              onClick={() => handleCancel(visit)}
+              onClick={() => handleCancelClick(visit)}
               disabled={cancellingId === visit.id}
               className="mt-3 rounded-lg border border-[var(--error)]/50 bg-transparent px-3 py-1.5 text-sm font-medium text-[var(--error)] hover:bg-[var(--error)]/10 disabled:opacity-50"
             >
@@ -124,6 +130,52 @@ export function ClientVisitsList({
           </li>
         ))}
       </ul>
+
+      {confirmCancelVisit && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50"
+          onClick={() => !cancellingId && setConfirmCancelVisit(null)}
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="confirm-cancel-title"
+        >
+          <div
+            className="w-full max-w-sm rounded-2xl bg-[var(--surface-light)] p-6 shadow-xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h3 id="confirm-cancel-title" className="text-lg font-semibold text-[var(--secondary)]">
+              Отменить запись?
+            </h3>
+            <p className="mt-2 text-sm text-[var(--secondary)]/90">
+              {format(parseISO(confirmCancelVisit.visitDateTime), "d MMMM yyyy, HH:mm", { locale: ru })}
+              {confirmCancelVisit.procedureNames && confirmCancelVisit.procedureNames.length > 0 && (
+                <> · {confirmCancelVisit.procedureNames.join(", ")}</>
+              )}
+            </p>
+            <p className="mt-2 text-sm text-[var(--secondary)]/80">
+              Вы уверены, что хотите отменить эту запись?
+            </p>
+            <div className="mt-5 flex gap-3">
+              <button
+                type="button"
+                onClick={() => !cancellingId && setConfirmCancelVisit(null)}
+                disabled={cancellingId !== null}
+                className="flex-1 rounded-xl border border-[var(--secondary)]/30 py-2.5 text-sm font-medium text-[var(--secondary)] hover:bg-[var(--secondary)]/10 disabled:opacity-60"
+              >
+                Нет
+              </button>
+              <button
+                type="button"
+                onClick={() => handleCancelConfirm(confirmCancelVisit)}
+                disabled={cancellingId !== null}
+                className="flex-1 rounded-xl bg-[var(--error)] py-2.5 text-sm font-medium text-white hover:opacity-90 disabled:opacity-70"
+              >
+                {cancellingId === confirmCancelVisit.id ? "Отмена…" : "Да, отменить"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
